@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model  Usuario {
+  id Int @id @default(autoincrement())
+  nome String
+  email String @unique
+  senha String
+  role Role @default(CLIENTE)
+  pedidos Pedidos[]
+  criadoEm DateTime @default(now())
+
+}
+
+
+enum Role{
+  CLIENTE
+  ADMIN
+  TECNICO
+}
+
+model Pedido{
+  id Int @id @default(autoincrement())
+  largura Float
+  altura Float
+  material material
+  status status @default(PENDENTE)
+  turno Turno?
+  dataOs DateTime?
+  Usuarioid Int
+  criadoEm DateTime @default(now())
+  Usuario Usuario @relation(fields: [Usuarioid], references: [id])
+}
+
+
+enum Material {POLIETILENO POLIAMIDA}
+enum status {PENDENTE AGENDADA EM_EXECUCAO CONCLUIDA}
+enum Turno {MANHA TARDE }
