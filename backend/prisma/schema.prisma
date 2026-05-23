@@ -4,47 +4,76 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-
-model  Usuario {
-  id Int @id @default(autoincrement())
-  nome String
-  email String @unique
-  senha String
-  role Role @default(CLIENTE)
-  pedidos Pedidos[]
-  criadoEm DateTime @default(now())
-
-}
-
-
-enum Role{
+enum Role {
   CLIENTE
   ADMIN
   TECNICO
 }
 
-model Pedido{
-  id Int @id @default(autoincrement())
-  largura Float
-  altura Float
-  material material
-  status status @default(PENDENTE)
-  turno Turno?
-  dataOs DateTime?
-  Usuarioid Int
-  criadoEm DateTime @default(now())
-  Usuario Usuario @relation(fields: [Usuarioid], references: [id])
+enum Material {
+  POLIETILENO
+  POLIAMIDA
 }
 
+enum StatusOS {
+  PENDENTE
+  AGENDADA
+  EM_EXECUCAO
+  CONCLUIDA
+}
 
-enum Material {POLIETILENO POLIAMIDA}
-enum status {PENDENTE AGENDADA EM_EXECUCAO CONCLUIDA}
-enum Turno {MANHA TARDE }
+enum Turno {
+  MANHA
+  TARDE
+}
+
+model Usuario {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  email     String    @unique
+  senha     String
+  role      Role      @default(CLIENTE)
+  pedidos   Pedido[]
+  criadoEm  DateTime  @default(now())
+}
+
+model Pedido {
+  id           Int          @id @default(autoincrement())
+  largura      Float
+  altura       Float
+  area         Float
+  material     Material
+  precoTotal   Float
+  status       StatusOS     @default(PENDENTE)
+  turno        Turno?
+  dataAgendada DateTime?
+  usuarioId    Int
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
+  tecnico      Tecnico?
+  certificado  Certificado?
+  criadoEm     DateTime     @default(now())
+}
+
+model Tecnico {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  crea     String  @unique
+  pedidoId Int?    @unique
+  pedido   Pedido? @relation(fields: [pedidoId], references: [id])
+}
+
+model Certificado {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  pedidoId  Int      @unique
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
+  emitidoEm DateTime @default(now())
+  validoAte DateTime
+}
