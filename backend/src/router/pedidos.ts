@@ -1,6 +1,15 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { autenticar, exigirRole } from "../middleware/auth.js";
+import { validarBody, validarParams } from "../middleware/validar.js";
+import {
+  simularSchema,
+  simularComDistanciaSchema,
+  criarPedidoSchema,
+  agendarSchema,
+  statusSchema,
+  idParamSchema,
+} from "../validation/schemas.js";
 import { calcularPreco, criarPedido, agendarPedido, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
 import { atualizarStatus, concluirPedido } from "../model/status.js";
 import type { Material, Turno } from "@prisma/client";
@@ -8,7 +17,7 @@ import axios from "axios";
 
 const router = Router();
 
-router.post("/simular-com-distancia", async (req: Request, res: Response) => {
+router.post("/simular-com-distancia", validarBody(simularComDistanciaSchema), async (req: Request, res: Response) => {
   const { largura, altura, material, cep } = req.body;
   const PRECOS: Record<string, number> = { POLIETILENO: 140, POLIAMIDA: 110 };
   const area = largura * altura;
@@ -74,31 +83,37 @@ router.post("/simular-com-distancia", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/simular", (req: Request, res: Response) => {
+router.post("/simular", validarBody(simularSchema), (req: Request, res: Response) => {
   const { largura, altura, material } = req.body;
   const resultado = calcularPreco(largura, altura, material as Material);
   res.json(resultado);
 });
 
-router.post("/criar", autenticar, async (req: Request, res: Response) => {
+router.post("/criar", autenticar, validarBody(criarPedidoSchema), async (req: Request, res: Response) => {
   const { largura, altura, material } = req.body;
   const pedido = await criarPedido(req.usuario!.id, largura, altura, material as Material);
   res.status(201).json(pedido);
 });
 
-router.post("/agendar/:id", autenticar, async (req: Request, res: Response) => {
-  const { dataAgendada, turno } = req.body;
-  try {
-    const pedido = await agendarPedido(
-      Number(req.params["id"]),
-      new Date(dataAgendada),
-      turno as Turno
-    );
-    res.json(pedido);
-  } catch {
-    res.status(409).json({ erro: "Horário indisponível" });
+router.post(
+  "/agendar/:id",
+  autenticar,
+  validarParams(idParamSchema),
+  validarBody(agendarSchema),
+  async (req: Request, res: Response) => {
+    const { dataAgendada, turno } = req.body;
+    try {
+      const pedido = await agendarPedido(
+        Number(req.params["id"]),
+        new Date(dataAgendada),
+        turno as Turno
+      );
+      res.json(pedido);
+    } catch {
+      res.status(409).json({ erro: "Horário indisponível" });
+    }
   }
-});
+);
 
 router.get("/meus-pedidos", autenticar, async (req: Request, res: Response) => {
   const pedidos = await listarPedidosUsuario(req.usuario!.id);
@@ -110,15 +125,28 @@ router.get("/todos", autenticar, exigirRole("ADMIN", "TECNICO"), async (req: Req
   res.json(pedidos);
 });
 
-router.patch("/status/:id", autenticar, exigirRole("ADMIN", "TECNICO"), async (req: Request, res: Response) => {
-  const { status } = req.body;
-  const pedido = await atualizarStatus(Number(req.params["id"]), status);
-  res.json(pedido);
-});
+router.patch(
+  "/status/:id",
+  autenticar,
+  exigirRole("ADMIN", "TECNICO"),
+  validarParams(idParamSchema),
+  validarBody(statusSchema),
+  async (req: Request, res: Response) => {
+    const { status } = req.body;
+    const pedido = await atualizarStatus(Number(req.params["id"]), status);
+    res.json(pedido);
+  }
+);
 
-router.patch("/concluir/:id", autenticar, exigirRole("ADMIN", "TECNICO"), async (req: Request, res: Response) => {
-  const pedido = await concluirPedido(Number(req.params["id"]));
-  res.json(pedido);
-});
+router.patch(
+  "/concluir/:id",
+  autenticar,
+  exigirRole("ADMIN", "TECNICO"),
+  validarParams(idParamSchema),
+  async (req: Request, res: Response) => {
+    const pedido = await concluirPedido(Number(req.params["id"]));
+    res.json(pedido);
+  }
+);
 
 export default router;

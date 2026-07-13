@@ -60,6 +60,11 @@ model Pedido {
   tecnico      Tecnico?
   certificado  Certificado?
   criadoEm     DateTime     @default(now())
+
+  // Um mesmo dia+turno só pode estar ocupado por um pedido por vez.
+  // Pedidos sem agendamento (dataAgendada/turno nulos) não são afetados:
+  // o Postgres trata cada par de NULLs como distinto entre si.
+  @@unique([dataAgendada, turno])
 }
 
 model Tecnico {

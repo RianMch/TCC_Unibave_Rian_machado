@@ -4,11 +4,13 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { criarUser, buscarPorEmail } from "../model/user.js";
 import { autenticar } from "../middleware/auth.js";
+import { validarBody } from "../middleware/validar.js";
+import { registrarSchema, loginSchema } from "../validation/schemas.js";
 
 const router = Router();
 const SEGREDO = process.env["JWT_SECRET"]!;
 
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", validarBody(registrarSchema), async (req: Request, res: Response) => {
   const { nome, email, senha } = req.body;
   const existe = await buscarPorEmail(email);
   if (existe) {
@@ -19,7 +21,7 @@ router.post("/register", async (req: Request, res: Response) => {
   res.status(201).json({ mensagem: "Usuário criado com sucesso", id: usuario.id });
 });
 
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", validarBody(loginSchema), async (req: Request, res: Response) => {
   const { email, senha } = req.body;
   const usuario = await buscarPorEmail(email);
   if (!usuario) {

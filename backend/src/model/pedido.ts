@@ -1,5 +1,6 @@
 import "dotenv/config";
 import prisma from "../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import type { Material, Turno } from "@prisma/client";
 
 const PRECOS = {
@@ -38,22 +39,21 @@ export async function agendarPedido(
   dataAgendada: Date,
   turno: Turno
 ) {
-  const conflito = await prisma.pedido.findFirst({
-    where: {
-      dataAgendada,
-      turno,
-      status: { in: ["PENDENTE", "AGENDADA"] },
-    },
-  });
-
-  if (conflito) {
-    throw new Error("Horário indisponível");
+  try {
+    return await prisma.pedido.update({
+      where: { id: pedidoId },
+      data: { dataAgendada, turno, status: "AGENDADA" },
+    });
+  } catch (e) {
+    // P2002 = violação de constraint única (dataAgendada, turno já ocupados).
+    // O banco garante isso atomicamente, então não existe mais uma janela
+    // entre "checar se está livre" e "reservar" onde duas requisições
+    // simultâneas poderiam agendar o mesmo horário.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new Error("Horário indisponível");
+    }
+    throw e;
   }
-
-  return await prisma.pedido.update({
-    where: { id: pedidoId },
-    data: { dataAgendada, turno, status: "AGENDADA" },
-  });
 }
 
 export async function listarPedidosUsuario(usuarioId: number) {
