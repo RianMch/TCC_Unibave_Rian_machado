@@ -36,12 +36,13 @@ export default function Dashboard() {
   const [data, setData] = useState("");
   const [turno, setTurno] = useState<"MANHA" | "TARDE">("MANHA");
   const [erro, setErro] = useState("");
-  const { usuario, logout } = useAuth();
+  const { carregando } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (carregando) return;
     carregarPedidos();
-  }, []);
+  }, [carregando]);
 
   async function carregarPedidos() {
     try {
@@ -63,38 +64,17 @@ export default function Dashboard() {
     }
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate("/");
-  }
-
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>Meus pedidos</h1>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h1 style={{ margin: 0 }}>Meus pedidos</h1>
           <button
             onClick={() => navigate("/")}
             style={{ padding: "8px 16px", border: "1px solid #0F6E56", background: "white", color: "#0F6E56", borderRadius: 8, cursor: "pointer" }}
           >
             Novo orçamento
           </button>
-          {usuario?.role === "ADMIN" && (
-            <button
-              onClick={() => navigate("/admin")}
-              style={{ padding: "8px 16px", background: "#085041", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
-            >
-              Painel admin
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            style={{ padding: "8px 16px", background: "#eee", border: "none", borderRadius: 8, cursor: "pointer" }}
-          >
-            Sair
-          </button>
         </div>
-      </div>
 
       {pedidos.length === 0 && (
         <div style={{ textAlign: "center", padding: 40, color: "#888" }}>

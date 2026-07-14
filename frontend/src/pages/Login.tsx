@@ -20,7 +20,7 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: "60px auto", fontFamily: "sans-serif" }}>
+    <div style={{ maxWidth: 400, margin: "60px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
       <h1>Entrar</h1>
 
       <form onSubmit={handleSubmit}>

@@ -1,8 +1,13 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+/**
+ * Barra de navegação compartilhada por todas as páginas. Antes, cada
+ * página (Home, Dashboard, Admin, Login, Register) montava seu próprio
+ * cabeçalho na mão, duplicando os mesmos links e o botão de logout.
+ */
 export default function Navbar() {
-  const { usuario, logout } = useAuth();
+  const { usuario, carregando, logout } = useAuth();
   const navigate = useNavigate();
 
   async function handleLogout() {
@@ -11,72 +16,63 @@ export default function Navbar() {
   }
 
   return (
-    <nav style={{
-      background: "white",
-      borderBottom: "1px solid #e5e7eb",
-      padding: "0 24px",
-      height: 60,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      position: "sticky",
-      top: 0,
-      zIndex: 100,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-    }}>
-      <div
-        onClick={() => navigate("/")}
-        style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
-      >
-        <div style={{
-          width: 32, height: 32, background: "#0F6E56",
-          borderRadius: 8, display: "flex", alignItems: "center",
-          justifyContent: "center", color: "white", fontSize: 16,
-        }}>🛡</div>
-        <span style={{ fontWeight: 600, fontSize: 16, color: "#0F6E56" }}>RedeSegura</span>
-      </div>
+    <nav
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "16px 24px",
+        borderBottom: "1px solid #eee",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <Link to="/" style={{ fontWeight: 600, color: "#085041", textDecoration: "none" }}>
+        Redes de Proteção
+      </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {usuario ? (
-          <>
-            <button
-              onClick={() => navigate("/dashboard")}
-              style={{ background: "none", color: "#374151", padding: "6px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}
-            >
-              Meus pedidos
-            </button>
-            {usuario.role === "ADMIN" && (
+      {/* Enquanto a sessão ainda não foi confirmada (/auth/me em voo),
+          não mostra nem os links de visitante nem os de usuário logado —
+          evita o link errado piscar na tela por uma fração de segundo. */}
+      {!carregando && (
+        <div style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 14 }}>
+          {usuario ? (
+            <>
+              <Link to="/dashboard" style={{ color: "#333", textDecoration: "none" }}>
+                Meus pedidos
+              </Link>
+              {usuario.role === "ADMIN" && (
+                <Link to="/admin" style={{ color: "#333", textDecoration: "none" }}>
+                  Painel admin
+                </Link>
+              )}
               <button
-                onClick={() => navigate("/admin")}
-                style={{ background: "none", color: "#374151", padding: "6px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}
+                onClick={handleLogout}
+                style={{ padding: "6px 14px", background: "#eee", border: "none", borderRadius: 8, cursor: "pointer" }}
               >
-                Admin
+                Sair
               </button>
-            )}
-            <button
-              onClick={handleLogout}
-              style={{ background: "#f3f4f6", color: "#374151", padding: "6px 12px", borderRadius: 8 }}
-            >
-              Sair
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => navigate("/login")}
-              style={{ background: "none", color: "#374151", padding: "6px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}
-            >
-              Entrar
-            </button>
-            <button
-              onClick={() => navigate("/register")}
-              style={{ background: "#0F6E56", color: "white", padding: "6px 16px", borderRadius: 8 }}
-            >
-              Criar conta
-            </button>
-          </>
-        )}
-      </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={{ color: "#333", textDecoration: "none" }}>
+                Entrar
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  padding: "6px 14px",
+                  background: "#0F6E56",
+                  color: "white",
+                  borderRadius: 8,
+                  textDecoration: "none",
+                }}
+              >
+                Criar conta
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
