@@ -11,6 +11,7 @@
     "studio": "prisma studio --url postgresql://postgres:123456@localhost:5432/TCC"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "axios": "^1.16.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

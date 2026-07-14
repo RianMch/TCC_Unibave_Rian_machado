@@ -14,10 +14,6 @@ interface Pedido {
   turno: string | null;
   dataAgendada: string | null;
   criadoEm: string;
-  usuario: {
-    nome: string;
-    email: string;
-  };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -34,37 +30,38 @@ const STATUS_COR: Record<string, string> = {
   CONCLUIDA: "#EAF3DE",
 };
 
-export default function Admin() {
+export default function Dashboard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [filtro, setFiltro] = useState("TODOS");
-  const { usuario, logout } = useAuth();
+  const [pedidoAgendando, setPedidoAgendando] = useState<number | null>(null);
+  const [data, setData] = useState("");
+  const [turno, setTurno] = useState<"MANHA" | "TARDE">("MANHA");
+  const [erro, setErro] = useState("");
+  const { usuario, carregando, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!usuario || usuario.role !== "ADMIN") {
-      navigate("/dashboard");
-      return;
-    }
+    if (carregando) return;
     carregarPedidos();
-  }, [usuario]);
+  }, [carregando]);
 
   async function carregarPedidos() {
     try {
-      const res = await api.get("/pedidos/todos");
+      const res = await api.get("/pedidos/meus-pedidos");
       setPedidos(res.data);
     } catch {
       navigate("/login");
     }
   }
 
-  async function atualizarStatus(pedidoId: number, status: string) {
-    await api.patch(`/pedidos/status/${pedidoId}`, { status });
-    carregarPedidos();
-  }
-
-  async function concluir(pedidoId: number) {
-    await api.patch(`/pedidos/concluir/${pedidoId}`);
-    carregarPedidos();
+  async function agendar(pedidoId: number) {
+    try {
+      await api.post(`/pedidos/agendar/${pedidoId}`, { dataAgendada: data, turno });
+      setPedidoAgendando(null);
+      setErro("");
+      carregarPedidos();
+    } catch {
+      setErro("Horário indisponível, escolha outro");
+    }
   }
 
   async function handleLogout() {
@@ -72,29 +69,25 @@ export default function Admin() {
     navigate("/");
   }
 
-  const pedidosFiltrados = filtro === "TODOS"
-    ? pedidos
-    : pedidos.filter(p => p.status === filtro);
-
-  const contadores = {
-    total: pedidos.length,
-    pendente: pedidos.filter(p => p.status === "PENDENTE").length,
-    agendada: pedidos.filter(p => p.status === "AGENDADA").length,
-    emExecucao: pedidos.filter(p => p.status === "EM_EXECUCAO").length,
-    concluida: pedidos.filter(p => p.status === "CONCLUIDA").length,
-  };
-
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
+    <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>Painel administrativo</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h1 style={{ margin: 0 }}>Meus pedidos</h1>
+        <div style={{ display: "flex", gap: 12 }}>
           <button
-            onClick={() => navigate("/dashboard")}
-            style={{ padding: "8px 16px", border: "1px solid #ddd", background: "white", borderRadius: 8, cursor: "pointer" }}
+            onClick={() => navigate("/")}
+            style={{ padding: "8px 16px", border: "1px solid #0F6E56", background: "white", color: "#0F6E56", borderRadius: 8, cursor: "pointer" }}
           >
-            Minha conta
+            Novo orçamento
           </button>
+          {!carregando && usuario?.role === "ADMIN" && (
+            <button
+              onClick={() => navigate("/admin")}
+              style={{ padding: "8px 16px", background: "#085041", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+            >
+              Painel admin
+            </button>
+          )}
           <button
             onClick={handleLogout}
             style={{ padding: "8px 16px", background: "#eee", border: "none", borderRadius: 8, cursor: "pointer" }}
@@ -104,59 +97,34 @@ export default function Admin() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-        {[
-          { label: "Total", valor: contadores.total, cor: "#f5f5f5" },
-          { label: "Pendentes", valor: contadores.pendente, cor: "#FAEEDA" },
-          { label: "Agendadas", valor: contadores.agendada, cor: "#E6F1FB" },
-          { label: "Concluídas", valor: contadores.concluida, cor: "#EAF3DE" },
-        ].map(card => (
-          <div key={card.label} style={{ background: card.cor, borderRadius: 10, padding: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 500 }}>{card.valor}</div>
-            <div style={{ fontSize: 13, color: "#555" }}>{card.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {["TODOS", "PENDENTE", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"].map(s => (
+      {pedidos.length === 0 && (
+        <div style={{ textAlign: "center", padding: 40, color: "#888" }}>
+          <p>Nenhum pedido ainda.</p>
           <button
-            key={s}
-            onClick={() => setFiltro(s)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              border: "1px solid #ddd",
-              background: filtro === s ? "#0F6E56" : "white",
-              color: filtro === s ? "white" : "#555",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            onClick={() => navigate("/")}
+            style={{ padding: "10px 24px", background: "#0F6E56", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
           >
-            {s === "TODOS" ? "Todos" : STATUS_LABEL[s]}
+            Fazer orçamento
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {pedidosFiltrados.map(pedido => (
+      {pedidos.map(pedido => (
         <div
           key={pedido.id}
           style={{ border: "1px solid #ddd", borderRadius: 12, padding: 20, marginBottom: 16 }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-            <div>
-              <span style={{ fontWeight: 500 }}>OS #{String(pedido.id).padStart(4, "0")}</span>
-              <span style={{ marginLeft: 12, color: "#555", fontSize: 14 }}>{pedido.usuario.nome}</span>
-              <span style={{ marginLeft: 8, color: "#888", fontSize: 13 }}>{pedido.usuario.email}</span>
-            </div>
+            <span style={{ fontWeight: 500 }}>OS #{String(pedido.id).padStart(4, "0")}</span>
             <span style={{ background: STATUS_COR[pedido.status], padding: "4px 12px", borderRadius: 20, fontSize: 13 }}>
               {STATUS_LABEL[pedido.status]}
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 14, color: "#555", marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 14, color: "#555" }}>
             <span>Material: <strong>{pedido.material}</strong></span>
             <span>Área: <strong>{pedido.area.toFixed(2)} m²</strong></span>
+            <span>Dimensões: <strong>{pedido.largura} × {pedido.altura} m</strong></span>
             <span>Total: <strong>R$ {pedido.precoTotal.toLocaleString("pt-BR")}</strong></span>
             {pedido.dataAgendada && (
               <span>Data: <strong>{new Date(pedido.dataAgendada).toLocaleDateString("pt-BR")}</strong></span>
@@ -166,24 +134,52 @@ export default function Admin() {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {pedido.status === "AGENDADA" && (
-              <button
-                onClick={() => atualizarStatus(pedido.id, "EM_EXECUCAO")}
-                style={{ padding: "6px 14px", background: "#E6F1FB", border: "1px solid #185FA5", color: "#185FA5", borderRadius: 6, cursor: "pointer", fontSize: 13 }}
-              >
-                Iniciar execução
-              </button>
-            )}
-            {pedido.status === "EM_EXECUCAO" && (
-              <button
-                onClick={() => concluir(pedido.id)}
-                style={{ padding: "6px 14px", background: "#EAF3DE", border: "1px solid #3B6D11", color: "#3B6D11", borderRadius: 6, cursor: "pointer", fontSize: 13 }}
-              >
-                Concluir e gerar certificado
-              </button>
-            )}
-          </div>
+          {pedido.status === "PENDENTE" && (
+            <div style={{ marginTop: 12 }}>
+              {pedidoAgendando === pedido.id ? (
+                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 12 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <input
+                      type="date"
+                      value={data}
+                      onChange={e => setData(e.target.value)}
+                      style={{ flex: 1, padding: 8, borderRadius: 6, border: "1px solid #ddd" }}
+                    />
+                    <select
+                      value={turno}
+                      onChange={e => setTurno(e.target.value as "MANHA" | "TARDE")}
+                      style={{ padding: 8, borderRadius: 6, border: "1px solid #ddd" }}
+                    >
+                      <option value="MANHA">Manhã</option>
+                      <option value="TARDE">Tarde</option>
+                    </select>
+                  </div>
+                  {erro && <p style={{ color: "red", fontSize: 13, margin: "0 0 8px" }}>{erro}</p>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => agendar(pedido.id)}
+                      style={{ flex: 1, padding: 8, background: "#0F6E56", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      Confirmar
+                    </button>
+                    <button
+                      onClick={() => setPedidoAgendando(null)}
+                      style={{ padding: "8px 16px", border: "1px solid #ddd", background: "white", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setPedidoAgendando(pedido.id)}
+                  style={{ padding: "8px 16px", background: "#0F6E56", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+                >
+                  Agendar instalação
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
