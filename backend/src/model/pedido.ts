@@ -79,7 +79,7 @@ export async function listarPedidosUsuario(usuarioId: number) {
 
 export async function listarTodosPedidos() {
   return await prisma.pedido.findMany({
-    include: { usuario: { select: { nome: true, email: true } } },
+    include: { usuario: { select: { nome: true, email: true, telefone: true } } },
     orderBy: { criadoEm: "desc" },
   });
 }

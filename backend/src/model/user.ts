@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
 
-export async function criarUser(nome: string, email: string, senhaPlana: string) {
+export async function criarUser(nome: string, email: string, senhaPlana: string, telefone: string) {
   const saltRounds = 10;
   const senhaHash = await bcrypt.hash(senhaPlana, saltRounds);
 
@@ -11,6 +11,7 @@ export async function criarUser(nome: string, email: string, senhaPlana: string)
       nome,
       email,
       senha: senhaHash, // Salva o hash gerado pelo bcrypt
+      telefone,
         // Adicione uma role padrão se o seu schema exigir (ex: "USER" ou "ADMIN")
     },
   });

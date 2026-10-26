@@ -40,6 +40,7 @@ model Usuario {
   nome      String
   email     String    @unique
   senha     String
+  telefone  String?
   role      Role      @default(CLIENTE)
   pedidos   Pedido[]
   criadoEm  DateTime  @default(now())

@@ -12,13 +12,13 @@ const router = Router();
 const SEGREDO = process.env["JWT_SECRET"]!;
 
 router.post("/register", limiteRegistro, validarBody(registrarSchema), async (req: Request, res: Response) => {
-  const { nome, email, senha } = req.body;
+  const { nome, email, senha, telefone } = req.body;
   const existe = await buscarPorEmail(email);
   if (existe) {
     res.status(400).json({ erro: "Email já cadastrado" });
     return;
   }
-  const usuario = await criarUser(nome, email, senha);
+  const usuario = await criarUser(nome, email, senha, telefone);
   res.status(201).json({ mensagem: "Usuário criado com sucesso", id: usuario.id });
 });
 

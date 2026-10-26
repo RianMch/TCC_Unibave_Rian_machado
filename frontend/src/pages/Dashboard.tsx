@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import api from "../services/api";
+import { WHATSAPP_EMPRESA, abrirWhatsapp, mensagemSobrePedido } from "../lib/whatsapp";
 
 interface Pedido {
   id: number;
@@ -112,6 +113,15 @@ export default function Dashboard() {
             {pedido.turno && (
               <span>Turno: <strong>{pedido.turno === "MANHA" ? "Manhã" : "Tarde"}</strong></span>
             )}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <button
+              onClick={() => abrirWhatsapp(WHATSAPP_EMPRESA, mensagemSobrePedido(pedido))}
+              style={{ padding: "6px 14px", background: "#25D366", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}
+            >
+              Falar no WhatsApp
+            </button>
           </div>
 
           {pedido.status === "PENDENTE" && (

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import api from "../services/api";
+import OrcamentoAdmin from "../components/OrcamentoAdmin";
 
 interface Pedido {
   id: number;
@@ -15,9 +16,10 @@ interface Pedido {
   turno: string | null;
   dataAgendada: string | null;
   criadoEm: string;
-  usuario: { // <--- Adicione esta propriedade na interface
+  usuario: {
     nome: string;
     email: string;
+    telefone: string | null;
   };
 }
 const STATUS_LABEL: Record<string, string> = {
@@ -139,6 +141,9 @@ export default function Admin() {
               <span style={{ fontWeight: 500 }}>OS #{String(pedido.id).padStart(4, "0")}</span>
               <span style={{ marginLeft: 12, color: "#555", fontSize: 14 }}>{pedido.usuario.nome}</span>
               <span style={{ marginLeft: 8, color: "#888", fontSize: 13 }}>{pedido.usuario.email}</span>
+              {pedido.usuario.telefone && (
+                <span style={{ marginLeft: 8, color: "#888", fontSize: 13 }}>{pedido.usuario.telefone}</span>
+              )}
             </div>
             <span style={{ background: STATUS_COR[pedido.status], padding: "4px 12px", borderRadius: 20, fontSize: 13 }}>
               {STATUS_LABEL[pedido.status]}
@@ -159,7 +164,13 @@ export default function Admin() {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {pedido.status !== "CONCLUIDA" && (
+            <OrcamentoAdmin
+              key={`${pedido.id}-${pedido.material}-${pedido.precoTotal}`}
+              pedido={pedido} onSalvo={carregarPedidos} />
+          )}
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
             {pedido.status === "AGENDADA" && (
               <button
                 onClick={() => atualizarStatus(pedido.id, "EM_EXECUCAO")}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import api from "../services/api";
+import { moeda, numero } from "../lib/formato";
+import { WHATSAPP_EMPRESA, abrirWhatsapp, mensagemClienteParaEmpresa } from "../lib/whatsapp";
 
 type Tipo = "SACADA" | "CAMPO";
 type Material = "POLIETILENO" | "POLIAMIDA";
@@ -17,10 +19,6 @@ interface Estimativa {
   transporte?: number;
   porMaterial: { material: Material; nome: string; preco: number; total: number }[];
 }
-
-const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const numero = (v: number, casas: number) =>
-  v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
 /** Extrai a mensagem de erro que o backend manda em respostas 400. */
 function mensagemDoBackend(e: unknown): string | null {
@@ -40,6 +38,7 @@ export default function Calculadora() {
   const [simulando, setSimulando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [pedidoId, setPedidoId] = useState<number | null>(null);
   const [precisaLogin, setPrecisaLogin] = useState(false);
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
@@ -121,7 +120,8 @@ export default function Calculadora() {
     setPrecisaLogin(false);
     setEnviando(true);
     try {
-      await api.post("/pedidos", { largura, altura, tipoInstalacao, cep: cep.trim() || undefined });
+      const res = await api.post("/pedidos", { largura, altura, tipoInstalacao, cep: cep.trim() || undefined });
+      setPedidoId(typeof res.data?.id === "number" ? res.data.id : null);
       setEnviado(true);
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) setPrecisaLogin(true);
@@ -132,20 +132,16 @@ export default function Calculadora() {
   }
 
   function compartilharWhatsapp() {
-    const linhas = [
-      "Olá! Gostaria de solicitar um orçamento para rede de proteção:",
-      `Tipo de Instalação: ${tipoInstalacao === "SACADA" ? "Sacada" : "Campo"}`,
-      `Dimensões aproximadas: ${largura}m (largura) x ${altura}m (altura)`,
-      cep.trim() ? `CEP: ${cep.trim()}` : "",
-      ...(estimativa
-        ? [
-            `Estimativa simulada (${numero(estimativa.area, 2)} m²):`,
-            ...estimativa.porMaterial.map(m => `- ${m.nome}: ${moeda(m.total)}`),
-          ]
-        : []),
-    ].filter(Boolean);
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(linhas.join("\n"))}`, "_blank");
+    const texto = mensagemClienteParaEmpresa({
+      id: pedidoId ?? undefined,
+      tipoInstalacao,
+      largura,
+      altura,
+      cep: cep.trim() || undefined,
+      area: estimativa?.area,
+      estimativa: estimativa?.porMaterial.map(m => ({ nome: m.nome, total: m.total })),
+    });
+    abrirWhatsapp(WHATSAPP_EMPRESA, texto);
   }
 
   if (enviado) {
@@ -155,7 +151,13 @@ export default function Calculadora() {
         <p style={{ color: "#333", margin: "12px 0" }}>
           Sua solicitação foi encaminhada para nossa equipe. O administrador irá analisar as medidas, definir o material adequado e entrar em contato com o orçamento detalhado.
         </p>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+          <button
+            onClick={compartilharWhatsapp}
+            style={{ padding: "10px 16px", background: "#25D366", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+          >
+            Avisar no WhatsApp
+          </button>
           <button
             onClick={() => navigate("/dashboard")}
             style={{ padding: "10px 16px", background: "#0F6E56", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
@@ -163,7 +165,7 @@ export default function Calculadora() {
             Ver meus pedidos
           </button>
           <button
-            onClick={() => setEnviado(false)}
+            onClick={() => { setEnviado(false); setPedidoId(null); }}
             style={{ padding: "10px 16px", background: "white", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}
           >
             Fazer outra solicitação

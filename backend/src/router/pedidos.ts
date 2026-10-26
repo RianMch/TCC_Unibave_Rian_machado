@@ -8,9 +8,10 @@ import {
   criarPedidoSchema,
   agendarSchema,
   statusSchema,
+  orcamentoSchema,
   idParamSchema,
 } from "../validation/schemas.js";
-import { calcularPreco, criarPedido, agendarPedido, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
+import { calcularPreco, criarPedido, agendarPedido, atualizarPedidoAdmin, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
 import { atualizarStatus, concluirPedido } from "../model/status.js";
 import type { Material, Turno, TipoInstalacao } from "@prisma/client";
 import axios from "axios";
@@ -144,6 +145,21 @@ router.patch(
   validarParams(idParamSchema),
   async (req: Request, res: Response) => {
     const pedido = await concluirPedido(Number(req.params["id"]));
+    res.json(pedido);
+  }
+);
+
+// Admin define o material e o valor definitivo do orçamento de um pedido.
+// Depois disso o cliente vê material e total no painel e o admin envia pelo WhatsApp.
+router.patch(
+  "/orcamento/:id",
+  autenticar,
+  exigirRole("ADMIN"),
+  validarParams(idParamSchema),
+  validarBody(orcamentoSchema),
+  async (req: Request, res: Response) => {
+    const { material, precoTotal } = req.body;
+    const pedido = await atualizarPedidoAdmin(Number(req.params["id"]), material as Material, precoTotal);
     res.json(pedido);
   }
 );

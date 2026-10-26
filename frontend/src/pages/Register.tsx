@@ -8,6 +8,7 @@ export default function Register() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -17,12 +18,12 @@ export default function Register() {
     setErro(""); // Limpa erros anteriores ao tentar novamente
 
     try {
-      await api.post("/auth/register", { nome, email, senha });
+      await api.post("/auth/register", { nome, email, senha, telefone });
       await login(email, senha);
       navigate("/dashboard");
     } catch (e) {
       if (isAxiosError(e) && e.response?.status === 400) {
-        setErro("E-mail já cadastrado ou dados inválidos.");
+        setErro("E-mail já cadastrado ou dados inválidos (confira o telefone com DDD).");
       } else {
         setErro("Não foi possível criar a conta. Tente novamente.");
       }
@@ -35,8 +36,9 @@ export default function Register() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 16 }}>
-          <label>Nome</label>
+          <label htmlFor="reg-nome">Nome</label>
           <input
+            id="reg-nome"
             type="text"
             value={nome}
             onChange={e => setNome(e.target.value)}
@@ -46,8 +48,9 @@ export default function Register() {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label>Email</label>
+          <label htmlFor="reg-email">Email</label>
           <input
+            id="reg-email"
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -57,13 +60,28 @@ export default function Register() {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label>Senha</label>
+          <label htmlFor="reg-senha">Senha</label>
           <input
+            id="reg-senha"
             type="password"
             value={senha}
             onChange={e => setSenha(e.target.value)}
             required
             minLength={6} // Exemplo: exigir senha mínima se desejar
+            style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label htmlFor="reg-telefone">Telefone / WhatsApp (com DDD)</label>
+          <input
+            id="reg-telefone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="(48) 99999-9999"
+            value={telefone}
+            onChange={e => setTelefone(e.target.value)}
+            required
             style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
           />
         </div>
