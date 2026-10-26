@@ -68,6 +68,9 @@ model Pedido {
   certificado    Certificado?
   
   criadoEm       DateTime        @default(now())
+
+  // Um dia+turno só pode ter um pedido (garantido pelo banco; ver migration 20260712000000)
+  @@unique([dataAgendada, turno])
 }
 
 model Tecnico {
