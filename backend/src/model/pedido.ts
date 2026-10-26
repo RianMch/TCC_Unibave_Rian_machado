@@ -1,9 +1,10 @@
 import "dotenv/config";
 import prisma from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
-import type { Material, Turno } from "@prisma/client";
+import type { Material, Turno, TipoInstalacao } from "@prisma/client";
 
-const PRECOS = {
+// Tipado explicitamente com Record para evitar erros de indexação com o Material
+const PRECOS: Record<Material, number> = {
   POLIETILENO: 140,
   POLIAMIDA: 110,
 };
@@ -14,13 +15,14 @@ export function calcularPreco(largura: number, altura: number, material: Materia
   return { area, preco };
 }
 
+// Criado pelo cliente na tela inicial (sem material e sem preço pré-definidos)
 export async function criarPedido(
   usuarioId: number,
   largura: number,
   altura: number,
-  material: Material
+  tipoInstalacao: TipoInstalacao
 ) {
-  const { area, preco } = calcularPreco(largura, altura, material);
+  const area = largura * altura;
 
   return await prisma.pedido.create({
     data: {
@@ -28,8 +30,24 @@ export async function criarPedido(
       largura,
       altura,
       area,
+      tipoInstalacao,
+      status: "PENDENTE",
+      // Material e precoTotal ficam opcionais/nulos até o admin definir no painel
+    },
+  });
+}
+
+// Função para o Admin atualizar/completar o pedido (definir material, preço e calcular mão de obra)
+export async function atualizarPedidoAdmin(
+  pedidoId: number,
+  material: Material,
+  precoTotal: number
+) {
+  return await prisma.pedido.update({
+    where: { id: pedidoId },
+    data: {
       material,
-      precoTotal: preco,
+      precoTotal,
     },
   });
 }
@@ -45,10 +63,6 @@ export async function agendarPedido(
       data: { dataAgendada, turno, status: "AGENDADA" },
     });
   } catch (e) {
-    // P2002 = violação de constraint única (dataAgendada, turno já ocupados).
-    // O banco garante isso atomicamente, então não existe mais uma janela
-    // entre "checar se está livre" e "reservar" onde duas requisições
-    // simultâneas poderiam agendar o mesmo horário.
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       throw new Error("Horário indisponível");
     }

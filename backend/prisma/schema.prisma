@@ -44,27 +44,30 @@ model Usuario {
   pedidos   Pedido[]
   criadoEm  DateTime  @default(now())
 }
+enum TipoInstalacao {
+  SACADA
+  CAMPO
+}
 
 model Pedido {
-  id           Int          @id @default(autoincrement())
-  largura      Float
-  altura       Float
-  area         Float
-  material     Material
-  precoTotal   Float
-  status       StatusOS     @default(PENDENTE)
-  turno        Turno?
-  dataAgendada DateTime?
-  usuarioId    Int
-  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
-  tecnico      Tecnico?
-  certificado  Certificado?
-  criadoEm     DateTime     @default(now())
-
-  // Um mesmo dia+turno só pode estar ocupado por um pedido por vez.
-  // Pedidos sem agendamento (dataAgendada/turno nulos) não são afetados:
-  // o Postgres trata cada par de NULLs como distinto entre si.
-  @@unique([dataAgendada, turno])
+  id             Int             @id @default(autoincrement())
+  largura        Float
+  altura         Float
+  area           Float
+  material       Material?       
+  tipoInstalacao TipoInstalacao  @default(SACADA)
+  precoTotal     Float?          
+  cep            String?         
+  status         StatusOS        @default(PENDENTE)
+  turno          Turno?
+  dataAgendada   DateTime?
+  usuarioId      Int
+  usuario        Usuario         @relation(fields: [usuarioId], references: [id])
+  
+  tecnico        Tecnico?
+  certificado    Certificado?
+  
+  criadoEm       DateTime        @default(now())
 }
 
 model Tecnico {

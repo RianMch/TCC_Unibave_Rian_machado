@@ -12,13 +12,13 @@ import {
 } from "../validation/schemas.js";
 import { calcularPreco, criarPedido, agendarPedido, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
 import { atualizarStatus, concluirPedido } from "../model/status.js";
-import type { Material, Turno } from "@prisma/client";
+import type { Material, Turno, TipoInstalacao } from "@prisma/client";
 import axios from "axios";
 
 const router = Router();
 
 router.post("/simular-com-distancia", validarBody(simularComDistanciaSchema), async (req: Request, res: Response) => {
-  const { largura, altura, material, cep } = req.body;
+  const { largura, altura, material, tipoInstalacao, cep } = req.body;
   const PRECOS: Record<string, number> = { POLIETILENO: 140, POLIAMIDA: 110 };
   const area = largura * altura;
   const preco = area * (PRECOS[material] ?? 140);
@@ -48,7 +48,6 @@ router.post("/simular-com-distancia", validarBody(simularComDistanciaSchema), as
     const coordCliente = geoCliente.data.features[0].geometry.coordinates;
     const coordEmpresa = geoEmpresa.data.features[0].geometry.coordinates;
 
-
     const rota = await axios.get("https://api.openrouteservice.org/v2/directions/driving-car", {
       headers: ORS_HEADERS,
       params: {
@@ -56,8 +55,6 @@ router.post("/simular-com-distancia", validarBody(simularComDistanciaSchema), as
         end: `${coordCliente[0]},${coordCliente[1]}`,
       },
     });
-
-    console.log("ROTA:", JSON.stringify(rota.data));
 
     const distanciaMetros = rota.data.features[0].properties.segments[0].distance;
     const distanciaKm = distanciaMetros / 1000;
@@ -69,6 +66,7 @@ router.post("/simular-com-distancia", validarBody(simularComDistanciaSchema), as
     res.json({
       area,
       preco,
+      tipoInstalacao,
       distanciaKm,
       custoGasolina: Math.round(custoGasolina * 100) / 100,
       custoTotal: Math.round(custoTotal * 100) / 100,
@@ -89,9 +87,10 @@ router.post("/simular", validarBody(simularSchema), (req: Request, res: Response
   res.json(resultado);
 });
 
-router.post("/criar", autenticar, validarBody(criarPedidoSchema), async (req: Request, res: Response) => {
-  const { largura, altura, material } = req.body;
-  const pedido = await criarPedido(req.usuario!.id, largura, altura, material as Material);
+// ✅ Alterado de "/criar" para "/" para corresponder exatamente a POST /api/pedidos
+router.post("/", autenticar, validarBody(criarPedidoSchema), async (req: Request, res: Response) => {
+  const { largura, altura, tipoInstalacao } = req.body;
+  const pedido = await criarPedido(req.usuario!.id, largura, altura, tipoInstalacao as TipoInstalacao);
   res.status(201).json(pedido);
 });
 

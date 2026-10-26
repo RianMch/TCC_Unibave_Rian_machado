@@ -33,7 +33,6 @@ router.post("/login", limiteLogin, validarBody(loginSchema), async (req: Request
     return;
   }
 
-
   const token = jwt.sign(
     { id: usuario.id, role: usuario.role },
     SEGREDO,
@@ -49,6 +48,28 @@ router.post("/login", limiteLogin, validarBody(loginSchema), async (req: Request
   res.json({ mensagem: "Login realizado com sucesso", role: usuario.role, id: usuario.id });
 });
 
+// --- NOVO: Rota para solicitação de recuperação de senha ---
+router.post("/esqueceu-senha", async (req: Request, res: Response) => {
+  const { email } = req.body;
+  
+  try {
+    const usuario = await buscarPorEmail(email);
+
+    // Por segurança, respondemos com sucesso mesmo se o e-mail não existir
+    // para evitar que pessoas descubram quais e-mails estão cadastrados.
+    if (!usuario) {
+      res.status(200).json({ mensagem: "Se o e-mail estiver cadastrado, as instruções foram enviadas." });
+      return;
+    }
+
+    // Aqui futuramente você pode adicionar a lógica de enviar um e-mail de redefinição
+    // (ex: gerando um token temporário e disparando um serviço de e-mail).
+
+    res.status(200).json({ mensagem: "Se o e-mail estiver cadastrado, as instruções foram enviadas." });
+  } catch (error) {
+    res.status(500).json({ erro: "Erro interno no servidor." });
+  }
+});
 
 router.post("/logout", (req: Request, res: Response) => {
   res.clearCookie("token");

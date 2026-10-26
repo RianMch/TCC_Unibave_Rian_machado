@@ -1,16 +1,12 @@
 import { z } from "zod";
 
-// Mesmos valores dos enums do schema.prisma (Material, Turno, StatusOS).
-// Repetidos aqui em vez de importados do @prisma/client porque o zod
-// precisa dos valores em tempo de definição do schema, e assim evitamos
-// acoplar a validação de entrada ao client gerado do Prisma.
+// Mesmos valores dos enums do schema.prisma
 const MATERIAIS = ["POLIETILENO", "POLIAMIDA"] as const;
+const TIPOS_INSTALACAO = ["SACADA", "CAMPO"] as const; 
 const TURNOS = ["MANHA", "TARDE"] as const;
 const STATUS = ["PENDENTE", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"] as const;
 
-// Dimensões físicas de uma rede de proteção: precisam ser positivas e
-// dentro de uma faixa plausível (evita valores absurdos tipo 0, negativo
-// ou 99999 que quebrariam o orçamento ou o banco).
+// Dimensões físicas de uma rede de proteção
 const dimensao = z
   .number({ error: "Deve ser um número" })
   .positive("Deve ser maior que zero")
@@ -42,6 +38,7 @@ export const simularSchema = z.object({
   largura: dimensao,
   altura: dimensao,
   material: z.enum(MATERIAIS, { error: "Material inválido" }),
+  tipoInstalacao: z.enum(TIPOS_INSTALACAO, { error: "Tipo de instalação inválido" }),
 });
 
 export const simularComDistanciaSchema = simularSchema.extend({
@@ -51,7 +48,12 @@ export const simularComDistanciaSchema = simularSchema.extend({
     .regex(/^\d{5}-?\d{3}$/, "CEP inválido, use o formato 00000-000"),
 });
 
-export const criarPedidoSchema = simularSchema;
+// ✅ Pedido criado pelo cliente exige apenas largura, altura e tipo de instalação (sem material)
+export const criarPedidoSchema = z.object({
+  largura: dimensao,
+  altura: dimensao,
+  tipoInstalacao: z.enum(TIPOS_INSTALACAO, { error: "Tipo de instalação inválido" }),
+});
 
 export const agendarSchema = z.object({
   dataAgendada: z
