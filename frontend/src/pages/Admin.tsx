@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import { isAxiosError } from "axios";
 import api from "../services/api";
 import OrcamentoAdmin from "../components/OrcamentoAdmin";
 import AgendarAdmin from "../components/AgendarAdmin";
@@ -85,8 +86,11 @@ export default function Admin() {
       await api.patch(`/pedidos/confirmar/${pedidoId}`);
       setErroAcao("");
       carregarPedidos();
-    } catch {
-      setErroAcao("Não foi possível confirmar. Salve o orçamento antes.");
+    } catch (e) {
+      if (isAxiosError(e) && e.response?.status === 409) setErroAcao(e.response.data?.erro ?? "Pedido não pode ser confirmado agora.");
+      else if (isAxiosError(e) && e.response?.status === 404) setErroAcao("Rota ou pedido não encontrado. Reinicie o backend (git pull + npm run dev).");
+      else if (isAxiosError(e) && e.response?.status === 500) setErroAcao("Erro no servidor. Rode 'npx prisma migrate dev' e 'npx prisma generate' no backend e reinicie.");
+      else setErroAcao("Não foi possível confirmar. Tente novamente.");
     }
   }
 
