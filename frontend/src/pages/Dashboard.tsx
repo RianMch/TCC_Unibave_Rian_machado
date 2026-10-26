@@ -8,9 +8,9 @@ interface Pedido {
   largura: number;
   altura: number;
   area: number;
-  material: string;
+  material: string | null;
   tipoInstalacao: "SACADA" | "CAMPO";
-  precoTotal: number;
+  precoTotal: number | null;
   status: string;
   turno: string | null;
   dataAgendada: string | null;
@@ -102,10 +102,10 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 14, color: "#555" }}>
-            <span>Material: <strong>{pedido.material}</strong></span>
+            <span>Material: <strong>{pedido.material ?? "A definir"}</strong></span>
             <span>Área: <strong>{pedido.area.toFixed(2)} m²</strong></span>
             <span>Dimensões: <strong>{pedido.largura} × {pedido.altura} m</strong></span>
-            <span>Total: <strong>R$ {pedido.precoTotal.toLocaleString("pt-BR")}</strong></span>
+            <span>Total: <strong>{pedido.precoTotal != null ? `R$ ${pedido.precoTotal.toLocaleString("pt-BR")}` : "A definir"}</strong></span>
             {pedido.dataAgendada && (
               <span>Data: <strong>{new Date(pedido.dataAgendada).toLocaleDateString("pt-BR")}</strong></span>
             )}
