@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import api from "../services/api";
 
 interface Pedido {
@@ -9,17 +9,17 @@ interface Pedido {
   altura: number;
   area: number;
   material: string;
+  tipoInstalacao: "SACADA" | "CAMPO"; 
   precoTotal: number;
   status: string;
   turno: string | null;
   dataAgendada: string | null;
   criadoEm: string;
-  usuario: {
+  usuario: { // <--- Adicione esta propriedade na interface
     nome: string;
     email: string;
   };
 }
-
 const STATUS_LABEL: Record<string, string> = {
   PENDENTE: "Pendente",
   AGENDADA: "Agendada",
@@ -145,10 +145,12 @@ export default function Admin() {
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 14, color: "#555", marginBottom: 12 }}>
-            <span>Material: <strong>{pedido.material}</strong></span>
-            <span>Área: <strong>{pedido.area.toFixed(2)} m²</strong></span>
-            <span>Total: <strong>R$ {pedido.precoTotal.toLocaleString("pt-BR")}</strong></span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 14, color: "#555" }}>
+          <span>Tipo: <strong>{pedido.tipoInstalacao === "SACADA" ? "Sacada" : "Campo"}</strong></span>
+  <span>Material: <strong>{pedido.material}</strong></span>
+  <span>Área: <strong>{pedido.area.toFixed(2)} m²</strong></span>
+  <span>Dimensões: <strong>{pedido.largura} × {pedido.altura} m</strong></span>
+  <span>Total: <strong>R$ {pedido.precoTotal.toLocaleString("pt-BR")}</strong></span>
             {pedido.dataAgendada && (
               <span>Data: <strong>{new Date(pedido.dataAgendada).toLocaleDateString("pt-BR")}</strong></span>
             )}

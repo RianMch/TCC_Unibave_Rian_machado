@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
+import { isAxiosError } from "axios";
 
 export default function Register() {
   const [nome, setNome] = useState("");
@@ -13,12 +14,18 @@ export default function Register() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErro(""); // Limpa erros anteriores ao tentar novamente
+
     try {
       await api.post("/auth/register", { nome, email, senha });
       await login(email, senha);
       navigate("/dashboard");
-    } catch {
-      setErro("Email já cadastrado ou dados inválidos");
+    } catch (e) {
+      if (isAxiosError(e) && e.response?.status === 400) {
+        setErro("E-mail já cadastrado ou dados inválidos.");
+      } else {
+        setErro("Não foi possível criar a conta. Tente novamente.");
+      }
     }
   }
 
@@ -33,6 +40,7 @@ export default function Register() {
             type="text"
             value={nome}
             onChange={e => setNome(e.target.value)}
+            required
             style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
           />
         </div>
@@ -43,6 +51,7 @@ export default function Register() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            required
             style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
           />
         </div>
@@ -53,6 +62,8 @@ export default function Register() {
             type="password"
             value={senha}
             onChange={e => setSenha(e.target.value)}
+            required
+            minLength={6} // Exemplo: exigir senha mínima se desejar
             style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
           />
         </div>

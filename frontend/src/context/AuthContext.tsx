@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import api from "../services/api";
 
@@ -14,12 +14,10 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  // começa true: enquanto não checarmos a sessão existente, ninguém deve
-  // ser tratado como "deslogado" (evita redirecionar/esconder UI à toa)
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -58,10 +56,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth fora do AuthProvider");
-  return context;
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import api from "../services/api";
 
 interface Pedido {
@@ -9,6 +9,7 @@ interface Pedido {
   altura: number;
   area: number;
   material: string;
+  tipoInstalacao: "SACADA" | "CAMPO";
   precoTotal: number;
   status: string;
   turno: string | null;
