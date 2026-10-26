@@ -19,7 +19,8 @@ interface Pedido {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  PENDENTE: "Pendente",
+  PENDENTE: "Aguardando orçamento",
+  AGUARDANDO_AGENDAMENTO: "Aguardando agendamento",
   AGENDADA: "Agendada",
   EM_EXECUCAO: "Em execução",
   CONCLUIDA: "Concluída",
@@ -27,6 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COR: Record<string, string> = {
   PENDENTE: "#FAEEDA",
+  AGUARDANDO_AGENDAMENTO: "#F3E8FA",
   AGENDADA: "#E6F1FB",
   EM_EXECUCAO: "#E1F5EE",
   CONCLUIDA: "#EAF3DE",
@@ -34,37 +36,16 @@ const STATUS_COR: Record<string, string> = {
 
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [pedidoAgendando, setPedidoAgendando] = useState<number | null>(null);
-  const [data, setData] = useState("");
-  const [turno, setTurno] = useState<"MANHA" | "TARDE">("MANHA");
-  const [erro, setErro] = useState("");
   const { carregando } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (carregando) return;
-    carregarPedidos();
-  }, [carregando]);
-
-  async function carregarPedidos() {
-    try {
-      const res = await api.get("/pedidos/meus-pedidos");
-      setPedidos(res.data);
-    } catch {
-      navigate("/login");
-    }
-  }
-
-  async function agendar(pedidoId: number) {
-    try {
-      await api.post(`/pedidos/agendar/${pedidoId}`, { dataAgendada: data, turno });
-      setPedidoAgendando(null);
-      setErro("");
-      carregarPedidos();
-    } catch {
-      setErro("Horário indisponível, escolha outro");
-    }
-  }
+    api
+      .get("/pedidos/meus-pedidos")
+      .then(res => setPedidos(res.data))
+      .catch(() => navigate("/login"));
+  }, [carregando, navigate]);
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
@@ -125,50 +106,16 @@ export default function Dashboard() {
           </div>
 
           {pedido.status === "PENDENTE" && (
-            <div style={{ marginTop: 12 }}>
-              {pedidoAgendando === pedido.id ? (
-                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 12 }}>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                    <input
-                      type="date"
-                      value={data}
-                      onChange={e => setData(e.target.value)}
-                      style={{ flex: 1, padding: 8, borderRadius: 6, border: "1px solid #ddd" }}
-                    />
-                    <select
-                      value={turno}
-                      onChange={e => setTurno(e.target.value as "MANHA" | "TARDE")}
-                      style={{ padding: 8, borderRadius: 6, border: "1px solid #ddd" }}
-                    >
-                      <option value="MANHA">Manhã</option>
-                      <option value="TARDE">Tarde</option>
-                    </select>
-                  </div>
-                  {erro && <p style={{ color: "red", fontSize: 13, margin: "0 0 8px" }}>{erro}</p>}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => agendar(pedido.id)}
-                      style={{ flex: 1, padding: 8, background: "#0F6E56", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      Confirmar
-                    </button>
-                    <button
-                      onClick={() => setPedidoAgendando(null)}
-                      style={{ padding: "8px 16px", border: "1px solid #ddd", background: "white", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setPedidoAgendando(pedido.id)}
-                  style={{ padding: "8px 16px", background: "#0F6E56", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
-                >
-                  Agendar instalação
-                </button>
-              )}
-            </div>
+            <p style={{ margin: "12px 0 0", fontSize: 13, color: "#555" }}>
+              {pedido.precoTotal != null
+                ? "Enviamos o orçamento pelo WhatsApp. Para seguir, responda confirmando."
+                : "Nossa equipe vai analisar as medidas e enviar o orçamento pelo WhatsApp."}
+            </p>
+          )}
+          {pedido.status === "AGUARDANDO_AGENDAMENTO" && (
+            <p style={{ margin: "12px 0 0", fontSize: 13, color: "#555" }}>
+              Orçamento confirmado! Vamos combinar a data da instalação pelo WhatsApp.
+            </p>
           )}
         </div>
       ))}

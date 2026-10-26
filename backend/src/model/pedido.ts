@@ -2,6 +2,7 @@ import "dotenv/config";
 import prisma from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import type { Material, Turno, TipoInstalacao } from "@prisma/client";
+import { RegraDeNegocioError, HorarioIndisponivelError } from "../lib/erros.js";
 
 // Tipado explicitamente com Record para evitar erros de indexação com o Material
 const PRECOS: Record<Material, number> = {
@@ -52,11 +53,29 @@ export async function atualizarPedidoAdmin(
   });
 }
 
+/** Cliente confirmou o orçamento pelo WhatsApp: pedido passa a aguardar agendamento. */
+export async function confirmarOrcamento(pedidoId: number) {
+  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: pedidoId } });
+  if (pedido.status !== "PENDENTE") throw new RegraDeNegocioError("Só pedidos pendentes podem ser confirmados");
+  if (pedido.material == null || pedido.precoTotal == null) {
+    throw new RegraDeNegocioError("Defina o material e o valor do orçamento antes de confirmar");
+  }
+  return await prisma.pedido.update({
+    where: { id: pedidoId },
+    data: { status: "AGUARDANDO_AGENDAMENTO" },
+  });
+}
+
+/** Admin define a data/turno da instalação (só depois da confirmação do cliente). */
 export async function agendarPedido(
   pedidoId: number,
   dataAgendada: Date,
   turno: Turno
 ) {
+  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: pedidoId } });
+  if (pedido.status !== "AGUARDANDO_AGENDAMENTO" && pedido.status !== "AGENDADA") {
+    throw new RegraDeNegocioError("O cliente ainda não confirmou o orçamento");
+  }
   try {
     return await prisma.pedido.update({
       where: { id: pedidoId },
@@ -64,7 +83,7 @@ export async function agendarPedido(
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      throw new Error("Horário indisponível");
+      throw new HorarioIndisponivelError();
     }
     throw e;
   }

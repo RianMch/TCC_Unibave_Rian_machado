@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
+import { RegraDeNegocioError } from "../lib/erros.js";
 
 export function tratarErros(
   err: unknown,
@@ -12,6 +13,11 @@ export function tratarErros(
     next(err);
     return;
   }
+  if (err instanceof RegraDeNegocioError) {
+    res.status(409).json({ erro: err.message });
+    return;
+  }
+
   console.error(`[erro] ${req.method} ${req.originalUrl}:`, err);
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {

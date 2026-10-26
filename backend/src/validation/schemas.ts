@@ -4,7 +4,7 @@ import { z } from "zod";
 const MATERIAIS = ["POLIETILENO", "POLIAMIDA"] as const;
 const TIPOS_INSTALACAO = ["SACADA", "CAMPO"] as const; 
 const TURNOS = ["MANHA", "TARDE"] as const;
-const STATUS = ["PENDENTE", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"] as const;
+const STATUS = ["PENDENTE", "AGUARDANDO_AGENDAMENTO", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"] as const;
 
 // Dimensões físicas de uma rede de proteção
 const dimensao = z

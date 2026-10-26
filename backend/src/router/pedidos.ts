@@ -11,7 +11,7 @@ import {
   orcamentoSchema,
   idParamSchema,
 } from "../validation/schemas.js";
-import { calcularPreco, criarPedido, agendarPedido, atualizarPedidoAdmin, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
+import { calcularPreco, criarPedido, agendarPedido, confirmarOrcamento, atualizarPedidoAdmin, listarPedidosUsuario, listarTodosPedidos } from "../model/pedido.js";
 import { atualizarStatus, concluirPedido } from "../model/status.js";
 import type { Material, Turno, TipoInstalacao } from "@prisma/client";
 import axios from "axios";
@@ -95,23 +95,29 @@ router.post("/", autenticar, validarBody(criarPedidoSchema), async (req: Request
   res.status(201).json(pedido);
 });
 
+// Só o admin agenda, e só depois de o cliente confirmar o orçamento pelo WhatsApp.
 router.post(
   "/agendar/:id",
   autenticar,
+  exigirRole("ADMIN"),
   validarParams(idParamSchema),
   validarBody(agendarSchema),
   async (req: Request, res: Response) => {
     const { dataAgendada, turno } = req.body;
-    try {
-      const pedido = await agendarPedido(
-        Number(req.params["id"]),
-        new Date(dataAgendada),
-        turno as Turno
-      );
-      res.json(pedido);
-    } catch {
-      res.status(409).json({ erro: "Horário indisponível" });
-    }
+    const pedido = await agendarPedido(Number(req.params["id"]), new Date(dataAgendada), turno as Turno);
+    res.json(pedido);
+  }
+);
+
+// Admin registra que o cliente confirmou o orçamento: PENDENTE -> AGUARDANDO_AGENDAMENTO.
+router.patch(
+  "/confirmar/:id",
+  autenticar,
+  exigirRole("ADMIN"),
+  validarParams(idParamSchema),
+  async (req: Request, res: Response) => {
+    const pedido = await confirmarOrcamento(Number(req.params["id"]));
+    res.json(pedido);
   }
 );
 

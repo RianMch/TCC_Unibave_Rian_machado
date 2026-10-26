@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import api from "../services/api";
 import OrcamentoAdmin from "../components/OrcamentoAdmin";
+import AgendarAdmin from "../components/AgendarAdmin";
 
 interface Pedido {
   id: number;
@@ -24,6 +25,7 @@ interface Pedido {
 }
 const STATUS_LABEL: Record<string, string> = {
   PENDENTE: "Pendente",
+  AGUARDANDO_AGENDAMENTO: "Aguardando agendamento",
   AGENDADA: "Agendada",
   EM_EXECUCAO: "Em execução",
   CONCLUIDA: "Concluída",
@@ -31,6 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COR: Record<string, string> = {
   PENDENTE: "#FAEEDA",
+  AGUARDANDO_AGENDAMENTO: "#F3E8FA",
   AGENDADA: "#E6F1FB",
   EM_EXECUCAO: "#E1F5EE",
   CONCLUIDA: "#EAF3DE",
@@ -39,6 +42,7 @@ const STATUS_COR: Record<string, string> = {
 export default function Admin() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [filtro, setFiltro] = useState("TODOS");
+  const [erroAcao, setErroAcao] = useState("");
   const { usuario, carregando } = useAuth();
   const navigate = useNavigate();
 
@@ -74,6 +78,16 @@ export default function Admin() {
   async function atualizarStatus(pedidoId: number, status: string) {
     await api.patch(`/pedidos/status/${pedidoId}`, { status });
     carregarPedidos();
+  }
+
+  async function confirmarOrcamento(pedidoId: number) {
+    try {
+      await api.patch(`/pedidos/confirmar/${pedidoId}`);
+      setErroAcao("");
+      carregarPedidos();
+    } catch {
+      setErroAcao("Não foi possível confirmar. Salve o orçamento antes.");
+    }
   }
 
   async function concluir(pedidoId: number) {
@@ -112,7 +126,7 @@ export default function Admin() {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {["TODOS", "PENDENTE", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"].map(s => (
+        {["TODOS", "PENDENTE", "AGUARDANDO_AGENDAMENTO", "AGENDADA", "EM_EXECUCAO", "CONCLUIDA"].map(s => (
           <button
             key={s}
             onClick={() => setFiltro(s)}
@@ -130,6 +144,8 @@ export default function Admin() {
           </button>
         ))}
       </div>
+
+      {erroAcao && <p role="alert" style={{ color: "red" }}>{erroAcao}</p>}
 
       {pedidosFiltrados.map(pedido => (
         <div
@@ -164,10 +180,29 @@ export default function Admin() {
             )}
           </div>
 
-          {pedido.status !== "CONCLUIDA" && (
+          {(pedido.status === "PENDENTE" || pedido.status === "AGUARDANDO_AGENDAMENTO") && (
             <OrcamentoAdmin
               key={`${pedido.id}-${pedido.material}-${pedido.precoTotal}`}
               pedido={pedido} onSalvo={carregarPedidos} />
+          )}
+
+          {pedido.status === "PENDENTE" && (
+            <div style={{ marginTop: 12 }}>
+              <button
+                onClick={() => confirmarOrcamento(pedido.id)}
+                disabled={pedido.material == null || pedido.precoTotal == null}
+                style={{ padding: "6px 14px", background: "#F3E8FA", border: "1px solid #6B3FA0", color: "#6B3FA0", borderRadius: 6, cursor: "pointer", fontSize: 13, opacity: pedido.precoTotal == null ? 0.5 : 1 }}
+              >
+                Cliente confirmou o orçamento
+              </button>
+              <span style={{ marginLeft: 8, fontSize: 12, color: "#888" }}>
+                Use depois que o cliente responder confirmando no WhatsApp.
+              </span>
+            </div>
+          )}
+
+          {pedido.status === "AGUARDANDO_AGENDAMENTO" && (
+            <AgendarAdmin pedidoId={pedido.id} onAgendado={carregarPedidos} />
           )}
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
